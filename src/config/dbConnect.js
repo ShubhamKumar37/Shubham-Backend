@@ -1,13 +1,10 @@
 import mongoose from "mongoose";
-import { DB_NAME } from "../constants";
+import { DB_NAME } from "../constants.js";
 
-export default dbConnect = async() =>
+const dbConnect = async() =>
 {
     try{
-        const connectionResponse = await mongoose.connect(`${process.env.MONGODB_URI}/${DB_NAME}`, {
-            useUnifiedTopology: true,
-            useNewUrlParser: true,
-        });
+        const connectionResponse = await mongoose.connect(`${process.env.MONGODB_URI}/${DB_NAME}`);
 
         console.log(`DB connect successfully || DB HOST :: ${connectionResponse}`);
     }
@@ -17,3 +14,5 @@ export default dbConnect = async() =>
         process.exit(1); // Process refer to the current reference where our application is running
     }
 }
+
+export default dbConnect;
