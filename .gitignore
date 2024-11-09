@@ -1,0 +1,111 @@
+# Node.js / Express / Next.js related
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.pnpm-store/
+
+# Build / Output directories
+dist/
+build/
+.next/
+out/
+coverage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# OS / IDE-specific
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.swn
+*.sublime-project
+*.sublime-workspace
+*.vscode/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Package lock files (optional)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Parcel bundler cache (for projects using Parcel)
+.cache/
+.parcel-cache/
+
+# Test-related
+coverage/
+*.lcov
+jest/
+jest-report/
+jest-cache/
+jest-coverage/
+
+# Next.js build output
+.next/
+
+# Serverless framework build artifacts
+.serverless/
+
+# Static output
+out/
+
+# Sentry files
+.sentryclirc
+
+# TypeScript cache and build directories
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Temporary files
+*.tmp
+*.temp
+
+# Miscellaneous
+.idea/
+*.iml
+*.suo
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.vs
+.vscode/
+.vscode/*
+.eslintcache
+*.log
+
+# macOS Finder attributes
+.DS_Store
+
+# Windows Thumbs.db
+Thumbs.db
+
+# Linux file system files
+.Trash-*
+
+# Coverage directories used by test tools
+coverage/
