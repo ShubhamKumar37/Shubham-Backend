@@ -10,9 +10,9 @@ app.use(cors({
     credentials: true,
 }));
 
-app.use(express.json({limit: "16Kb"}));    
+app.use(express.json({limit: "16Kb"})); // Limit specify the size of the request from front end
 app.use(express.urlencoded({extended: true, limit: "16Kb"}));
-app.use(express.static("public"));    
+app.use(express.static("public"));    // A place where some assest are stored
 app.use(cookieparser())
 
 export {app};   
