@@ -1,11 +1,16 @@
 import {v2} from "cloudinary";
 import fs from "fs";
+import dotenv from "dotenv"
+
+dotenv.config();
 
 v2.config({
     cloud_name: process.env.CLOUD_NAME,
     api_key: process.env.API_KEY,
     api_secret: process.env.API_SECRET,
 });
+
+
 
 const uploadCloudinary = async (localFilePath) =>
 {
@@ -25,8 +30,10 @@ const uploadCloudinary = async (localFilePath) =>
     }
     catch(error)
     {
-        fs.unlinkSync(localFilePath);
-        console.log("Error occur while uploading file to cloudinary :: ", error);
+        fs.unlink(localFilePath, (err) => {
+            if (err) console.log("Failed to delete local file:", err.message);
+        });  // Remove file from local because upload operation fails
+        console.log("Error occur while uploading file to cloudinary :: ", error.message);
         return null;
     }
 }
