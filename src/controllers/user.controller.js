@@ -3,7 +3,27 @@ import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import {asyncHandler} from "../utils/asyncHandler.js";
 import { uploadCloudinary } from "../utils/cloudinary.js";
-import bcrypt from "bcrypt"
+
+const generateAccessAndRefreshToken = async(userId) =>
+{
+    try
+    {
+        const userExist = await User.findById(userId);
+
+        const accessToken = userExist.generateAccessToken();
+        const refreshToken = userExist.generateRefreshToken();
+
+        userExist.refreshToken = refreshToken;
+        await userExist.save({validateBeforeSave: false}); // This will save the document directly without validating the saved data
+
+        return {accessToken, refreshToken};
+    }
+    catch(error)
+    {
+        throw new ApiError(500, "Error occur while generating access and refresh token")
+    }
+}
+
 
 const registerUser = asyncHandler(async (req, res) =>
 {
@@ -117,6 +137,48 @@ const loginUser = asyncHandler(async(req, res) =>
         throw new ApiError(401, "Password is incorret try again");
     }
 
+    const {accessToken, refreshToken} = await generateAccessAndRefreshToken(userExist._id);
+     
+    userExist.accessToken = accessToken;
+
+    delete userExist.refreshToken;
+    delete userExist.password;
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+    res.status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new ApiResponse(200, "User LoggedIn successfully", {user: accessToken, refreshToken, userExist})
+    );
+
 });
 
-export {registerUser, loginUser};
+const logoutUser = asyncHandler(async(req, res) => 
+{
+    const userId = req.user?._id;
+    await User.findByIdAndUpdate(userId, 
+        {
+            $set: {
+                refreshToken: undefined,
+            }
+        },
+        {new: true}
+    );
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    };
+
+    res.clearCookie("accessToken", options);
+    res.clearCookie("refreshToken", options);
+    res.status(200).json(
+        new ApiResponse(200, "User loggedOut successfully")
+    );
+});
+
+export {registerUser, loginUser, logoutUser};
