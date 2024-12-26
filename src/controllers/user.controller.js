@@ -3,17 +3,18 @@ import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import {asyncHandler} from "../utils/asyncHandler.js";
 import { uploadCloudinary } from "../utils/cloudinary.js";
+import bcrypt from "bcrypt"
 
 const registerUser = asyncHandler(async (req, res) =>
 {
     // Extract data from frontend
     const {userName, email, password, fullName} = req.body;
-    console.table([userName, email, password, fullName]);
+    // console.table([userName, email, password, fullName]);
 
     // Validate data
-    if([fullName, email, password, userName].some((item) => item.trim() === ""))
+    if([fullName, email, password, userName].some((item) => (item === undefined || item.trim() === "")))
     {
-        throw new  ApiError(400, "All field are required (user.controller.js -> registerUser()")
+        throw new ApiError(400, "All field are required (user.controller.js -> registerUser()")
     }
 
     // Check for already existing user
@@ -26,13 +27,23 @@ const registerUser = asyncHandler(async (req, res) =>
         throw new ApiError(409, "User already exist with this email or username, try Login");
     }
 
-    const avatarFilePath = req.files?.avatar[0]?.path;
-    const coverImagePath = req.files?.coverImage[0]?.path;
+    let avatarFilePath;
+    let coverImagePath;
 
-    if([avatarFilePath, coverImagePath].some((item) => !item))
+    if(req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0)
     {
-        throw new ApiError(400, "All fields are required (user.controller -> registerUser)");
+        avatarFilePath = req.files?.avatar[0]?.path;
     }
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0)
+    {
+        coverImagePath = req.files?.coverImage[0]?.path;
+    }
+
+
+    // if([avatarFilePath, coverImagePath].some((item) => !item))
+    // {
+    //     throw new ApiError(400, "All fields are required (user.controller -> registerUser)");
+    // }
     if(!avatarFilePath)
     {
         throw new ApiError(400, "Avatar image is required (user.controller -> registerUser)");
@@ -72,4 +83,40 @@ const registerUser = asyncHandler(async (req, res) =>
     );
 });
 
-export {registerUser};
+const loginUser = asyncHandler(async(req, res) =>
+{
+    // Data from User
+    // check for data 
+    // check for user existness
+    // compare password
+    // generate access and refresh token
+
+    const {email, userName, password} = req.body;
+
+    if(!email || !userName)
+    {
+        throw new ApiError(400, "Email or userName is required");
+    }
+
+    const userExist = await User.findOne({
+        $or:[{email}, {userName}]
+    });
+
+    if(!userExist)
+    {
+        throw new ApiError(404, "User never existed try signup");
+    }
+
+    // if(!(await bcrypt.compare(password, userExist.password)))
+    // {
+    //     throw new ApiError(401, "Password is incorret try again");
+    // }
+    
+    if(!(await userExist.isPasswordCorrect(password)))
+    {
+        throw new ApiError(401, "Password is incorret try again");
+    }
+
+});
+
+export {registerUser, loginUser};
