@@ -21,6 +21,6 @@ router.route("/login").post(loginUser);
 
 // Secure routes
 
-router.route("/logout").post(verifyJWT, logoutUser);
+router.route("/logout").put(verifyJWT, logoutUser);
 
 export default router; 

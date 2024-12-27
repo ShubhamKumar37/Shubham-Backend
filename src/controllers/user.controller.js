@@ -1,8 +1,15 @@
 import { User } from "../models/User.model.js";
-import { ApiError } from "../utils/apiError.js";
+import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import {asyncHandler} from "../utils/asyncHandler.js";
 import { uploadCloudinary } from "../utils/cloudinary.js";
+import jwt from "jsonwebtoken";
+
+
+const options = {
+    httpOnly: true,
+    secure: true
+};
 
 const generateAccessAndRefreshToken = async(userId) =>
 {
@@ -10,8 +17,8 @@ const generateAccessAndRefreshToken = async(userId) =>
     {
         const userExist = await User.findById(userId);
 
-        const accessToken = userExist.generateAccessToken();
-        const refreshToken = userExist.generateRefreshToken();
+        const accessToken = await userExist.generateAccessToken();
+        const refreshToken = await userExist.generateRefreshToken();
 
         userExist.refreshToken = refreshToken;
         await userExist.save({validateBeforeSave: false}); // This will save the document directly without validating the saved data
@@ -113,10 +120,12 @@ const loginUser = asyncHandler(async(req, res) =>
 
     const {email, userName, password} = req.body;
 
-    if(!email || !userName)
+    if(!email && !userName)
     {
         throw new ApiError(400, "Email or userName is required");
     }
+
+    if(!password) throw new ApiError(409, "Password is not given");
 
     const userExist = await User.findOne({
         $or:[{email}, {userName}]
@@ -144,15 +153,11 @@ const loginUser = asyncHandler(async(req, res) =>
     delete userExist.refreshToken;
     delete userExist.password;
 
-    const options = {
-        httpOnly: true,
-        secure: true
-    }
     res.status(200)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
     .json(
-        new ApiResponse(200, "User LoggedIn successfully", {user: accessToken, refreshToken, userExist})
+        new ApiResponse(200, "User LoggedIn successfully", {accessToken, refreshToken, user:userExist})
     );
 
 });
@@ -169,16 +174,42 @@ const logoutUser = asyncHandler(async(req, res) =>
         {new: true}
     );
 
-    const options = {
-        httpOnly: true,
-        secure: true
-    };
 
     res.clearCookie("accessToken", options);
     res.clearCookie("refreshToken", options);
     res.status(200).json(
         new ApiResponse(200, "User loggedOut successfully")
     );
+});
+
+const newAccessAndRefreshToken = asyncHandler(async(req, res) =>
+{
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+
+    if(!incomingRefreshToken)
+    {
+        throw new ApiError(404, "Token is not provided or unauthorized request");
+    }
+
+    const decodedData = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+    const userExist = await User.findById(decodedData?._id);
+    
+    if(incomingRefreshToken !== userExist.refreshToken)
+    {
+        throw new ApiError(400, "Invalid Token try login again");
+    }
+
+    const {accessToken, refreshToken} = await generateAccessAndRefreshToken(userExist._id);
+
+    res.status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new ApiResponse(200, "Access token is renewed and user can stay logged in", {user: userExist, refreshToken, accessToken})
+    );
+
+
 });
 
 export {registerUser, loginUser, logoutUser};
