@@ -191,23 +191,27 @@ const newAccessAndRefreshToken = asyncHandler(async(req, res) =>
         throw new ApiError(404, "Token is not provided or unauthorized request");
     }
 
-    const decodedData = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
-
-    const userExist = await User.findById(decodedData?._id);
+    try {
+        const decodedData = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
     
-    if(incomingRefreshToken !== userExist.refreshToken)
-    {
-        throw new ApiError(400, "Invalid Token try login again");
+        const userExist = await User.findById(decodedData?._id);
+        
+        if(incomingRefreshToken !== userExist.refreshToken)
+        {
+            throw new ApiError(400, "Invalid Token try login again");
+        }
+    
+        const {accessToken, refreshToken} = await generateAccessAndRefreshToken(userExist._id);
+    
+        res.status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(200, "Access token is renewed and user can stay logged in", {user: userExist, refreshToken, accessToken})
+        );  
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while renewing refresh and access token");
     }
-
-    const {accessToken, refreshToken} = await generateAccessAndRefreshToken(userExist._id);
-
-    res.status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json(
-        new ApiResponse(200, "Access token is renewed and user can stay logged in", {user: userExist, refreshToken, accessToken})
-    );
 
 
 });
