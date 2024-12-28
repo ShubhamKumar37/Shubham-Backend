@@ -153,7 +153,7 @@ const loginUser = asyncHandler(async(req, res) =>
     delete userExist.refreshToken;
     delete userExist.password;
 
-    res.status(200)
+    return res.status(200)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
     .json(
@@ -177,7 +177,7 @@ const logoutUser = asyncHandler(async(req, res) =>
 
     res.clearCookie("accessToken", options);
     res.clearCookie("refreshToken", options);
-    res.status(200).json(
+    return res.status(200).json(
         new ApiResponse(200, "User loggedOut successfully")
     );
 });
@@ -203,7 +203,7 @@ const newAccessAndRefreshToken = asyncHandler(async(req, res) =>
     
         const {accessToken, refreshToken} = await generateAccessAndRefreshToken(userExist._id);
     
-        res.status(200)
+        return res.status(200)
         .cookie("accessToken", accessToken, options)
         .cookie("refreshToken", refreshToken, options)
         .json(
@@ -216,4 +216,22 @@ const newAccessAndRefreshToken = asyncHandler(async(req, res) =>
 
 });
 
-export {registerUser, loginUser, logoutUser};
+const changeCurrentPassword = asyncHandler(async(req, res) => 
+{
+    const {oldPassword, newPassword} = req.body;
+    const userId = req.user?._id;
+
+    const user = await User.findById(userId);
+    if(!(await user.isPasswordCorrect(oldPassword)))
+    {
+        throw new ApiError(400, "Old password is incorrect");
+    }
+
+    user.password = newPassword;
+    await User.save({validateBeforeSave: false});
+
+    return res.status(200).json(
+        new ApiResponse(200, "Password resested successfully")
+    );
+})
+export {registerUser, loginUser, logoutUser, newAccessAndRefreshToken, changeCurrentPassword};
