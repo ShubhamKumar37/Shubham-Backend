@@ -31,7 +31,6 @@ const generateAccessAndRefreshToken = async(userId) =>
     }
 }
 
-
 const registerUser = asyncHandler(async (req, res) =>
 {
     // Extract data from frontend
@@ -233,5 +232,102 @@ const changeCurrentPassword = asyncHandler(async(req, res) =>
     return res.status(200).json(
         new ApiResponse(200, "Password resested successfully")
     );
-})
-export {registerUser, loginUser, logoutUser, newAccessAndRefreshToken, changeCurrentPassword};
+});
+
+const getCurrentUser = asyncHandler(async(req, res) => 
+{
+    return res.status(200).json(
+        new ApiResponse(200, "Current user fetched successfully", req.user)
+    );
+});
+
+const updateAccountDetails = asyncHandler(async(req, res) => 
+{
+    const {email, fullName} = req.body;
+
+    if(!email && !fullName) 
+    {
+        throw new ApiError(409, "Provided one detail atleast to be updated");
+    }
+
+    const updateOption = {};
+    if(email) updateOption.email = email;
+    if(fullName) updateOption.fullName = fullName;
+
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: updateOption
+        },
+        {new: true}
+    ).select("-password");
+
+    return res.status(200).json(
+        new ApiResponse(200, "User details updated successfully", user)
+    );
+});
+
+const updateAvatar = asyncHandler(async(req, res) =>
+{
+    const avatarLocalPath = req.file?.avatar;
+
+    if(!avatarLocalPath)
+    {
+        throw new ApiError(400, "Avatar file is missing");
+    }
+
+    const avatarUpload = await uploadCloudinary(avatarLocalPath);
+    if(!avatarUpload)
+    {
+        throw new ApiError(400, "Error occur while uploading avatar to cloudinary");
+    }
+
+    const userUpdate = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                avatar: avatarUpload.secure_url
+            }
+        },
+        {new: true}
+    ).select("-password");
+
+    return res.status(200).json(
+        new ApiResponse(200, "Avatar updated successfully", userUpdate)
+    );
+});
+
+const updateCoverImage = asyncHandler(async(req, res) =>
+{
+    const coverImageLocalPath = req.file?.coverImage;
+
+    if(!coverImageLocalPath)
+    {
+        throw new ApiError(400, "Cover image file is missing");
+    }
+
+    const coverImageUpload = await uploadCloudinary(coverImageLocalPath);
+    if(!coverImageUpload)
+    {
+        throw new ApiError(400, "Error occur while uploading cover image to cloudinary");
+    }
+
+    const userUpdate = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                coverImage: coverImageUpload.secure_url
+            }
+        },
+        {new: true}
+    ).select("-password");
+
+    return res.status(200).json(
+        new ApiResponse(200, "Cover image updated successfully", userUpdate)
+    );
+});
+
+export {
+    registerUser, loginUser, logoutUser, newAccessAndRefreshToken, changeCurrentPassword,
+    getCurrentUser, updateAccountDetails, updateAvatar, updateCoverImage, 
+};
