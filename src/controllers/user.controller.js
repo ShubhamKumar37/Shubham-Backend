@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import {asyncHandler} from "../utils/asyncHandler.js";
 import { uploadCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 
 const options = {
@@ -166,8 +167,8 @@ const logoutUser = asyncHandler(async(req, res) =>
     const userId = req.user?._id;
     await User.findByIdAndUpdate(userId, 
         {
-            $set: {
-                refreshToken: undefined,
+            $unset: {
+                refreshToken: 1,
             }
         },
         {new: true}
@@ -403,7 +404,60 @@ const getUserChannelProfile = asyncHandler(async(req, res) =>
     );
 });
 
+const getWatchHistory = asyncHandler(async(req, res) => 
+{
+    const user = await User.aggregate([
+        {
+            $match: new mongoose.Types.ObjectId(req.user._id)
+        },
+        {
+            $lookup: {
+                from : "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipleline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipleline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        avatar: 1,
+                                        userName: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]);
+
+    if(!user)
+    {
+        throw new ApiError(300, "No views for this video")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, "All watch history data", user[0].watchHistory)
+    );
+});
+
 export {
     registerUser, loginUser, logoutUser, newAccessAndRefreshToken, changeCurrentPassword,
-    getCurrentUser, updateAccountDetails, updateAvatar, updateCoverImage, getUserChannelProfile
+    getCurrentUser, updateAccountDetails, updateAvatar, updateCoverImage, getUserChannelProfile,
+    getWatchHistory, 
 };
