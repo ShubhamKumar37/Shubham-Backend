@@ -181,7 +181,7 @@ const logoutUser = asyncHandler(async(req, res) =>
     );
 });
 
-const newAccessAndRefreshToken = asyncHandler(async(req, res) =>
+const newAccessAndRefreshToken = asyncHandler(async(req, res) => 
 {
     const incomingRefreshToken = req.cookies?.refreshToken || req.body.refreshToken;
 
@@ -267,7 +267,7 @@ const updateAccountDetails = asyncHandler(async(req, res) =>
     );
 });
 
-const updateAvatar = asyncHandler(async(req, res) =>
+const updateAvatar = asyncHandler(async(req, res) => 
 {
     const avatarLocalPath = req.file?.avatar;
 
@@ -297,7 +297,7 @@ const updateAvatar = asyncHandler(async(req, res) =>
     );
 });
 
-const updateCoverImage = asyncHandler(async(req, res) =>
+const updateCoverImage = asyncHandler(async(req, res) => 
 {
     const coverImageLocalPath = req.file?.coverImage;
 
@@ -327,7 +327,83 @@ const updateCoverImage = asyncHandler(async(req, res) =>
     );
 });
 
+const getUserChannelProfile = asyncHandler(async(req, res) => 
+{
+    const {userName} = req.params;
+
+    if(!userName)
+    {
+        throw new ApiError(409, "Username is missing");
+    }
+
+    const channel = await User.aggregate([
+        {
+            $match:{
+                userName: userName?.toLowerCase()
+            },
+        },
+        {
+            $lookup:{
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers",
+            }
+        },
+        {
+            $lookup:{
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribeTo",
+            }
+        },
+        {
+            $addFields: {
+                subscriberCount: {
+                    $size: "$subscribers"
+                },
+                channelSubscribedToCount: {
+                    $size: "$subscribeTo"
+                },
+                isSubscribed: {
+                    $cond:{
+                        if: {
+                            $in: [req?.user._id, "$subscribers.subscriber"]
+                        },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                fullName: 1,
+                email: 1,
+                avatar: 1,
+                coverImage: 1,
+                userName: 1,
+                subscribers: 1,
+                subscribeTo: 1,
+                isSubscribed: 1.
+            }
+        }
+    ]);
+
+    if(!channel?.length)
+    {
+        throw new ApiError(404, "Channel doesnot exist");
+    }
+
+    console.log("This is the pipleline result = ", channel);
+
+    return res.status(200).json(
+        new ApiResponse(200, "Here is the channel details", channel[0])
+    );
+});
+
 export {
     registerUser, loginUser, logoutUser, newAccessAndRefreshToken, changeCurrentPassword,
-    getCurrentUser, updateAccountDetails, updateAvatar, updateCoverImage, 
+    getCurrentUser, updateAccountDetails, updateAvatar, updateCoverImage, getUserChannelProfile
 };
