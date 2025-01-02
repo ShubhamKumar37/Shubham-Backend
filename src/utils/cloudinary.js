@@ -1,4 +1,4 @@
-import {v2} from "cloudinary";
+import { v2 } from "cloudinary";
 import fs from "fs";
 import dotenv from "dotenv"
 
@@ -12,11 +12,9 @@ v2.config({
 
 
 
-const uploadCloudinary = async (localFilePath) =>
-{
-    try
-    {
-        if(!localFilePath) return null;
+const uploadCloudinary = async (localFilePath) => {
+    try {
+        if (!localFilePath) return null;
 
         // Upload to cloudinary
         const response = await v2.uploader.upload(localFilePath, {
@@ -29,8 +27,7 @@ const uploadCloudinary = async (localFilePath) =>
 
         return response;
     }
-    catch(error)
-    {
+    catch (error) {
         fs.unlink(localFilePath, (err) => {
             if (err) console.log("Failed to delete local file:", err.message);
         });  // Remove file from local because upload operation fails
@@ -39,4 +36,22 @@ const uploadCloudinary = async (localFilePath) =>
     }
 }
 
-export {uploadCloudinary};
+const deleteFromCloudinary = async (publicId, fileType) => {
+    try {
+        if (!publicId) {
+            return null;
+        }
+
+        const response = await v2.uploader.destroy(publicId, { resource_type: fileType });
+
+        console.log("File is deleted from cloudinary successfully");
+        console.log("Here is the response of deleted file = ", response);
+
+        return response;
+    } catch (error) {
+        console.log("Error occur while deleting file from cloudinary :: ", error.message);
+        return null;
+    }
+};
+
+export { uploadCloudinary, deleteFromCloudinary };
