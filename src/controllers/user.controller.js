@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { deleteFromCloudinary, uploadCloudinary } from "../utils/cloudinary.js";
+import { getFilePublicId } from "../utils/GetPublicId.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
@@ -11,16 +12,6 @@ const options = {
     httpOnly: true,
     secure: true
 };
-
-const getFilePublicId = (url) => {
-    if (!url) return null;
-
-    const parts = url.split("/").at(-1).split(".")[0];
-
-    return process.env.CLOUDINARY_FOLDER + parts;
-};
-
-
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
