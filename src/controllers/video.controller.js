@@ -171,4 +171,4 @@ export {
     getAllVideos, publishAVideo, getVideoById,
     updateVideo, deleteVideo, togglePublishStatus,
     increaseView,
-}
+};
