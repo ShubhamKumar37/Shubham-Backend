@@ -60,8 +60,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
     );
 });
 
-const getTweetById = asyncHandler(async (req, res) =>
-{
+const getTweetById = asyncHandler(async (req, res) => {
     const { tweetId } = req.params;
 
     const tweetExist = await Tweet.findById(tweetId);
@@ -73,6 +72,6 @@ const getTweetById = asyncHandler(async (req, res) =>
 });
 
 export {
-    createTweet, getUserTweets, getTweetById, 
+    createTweet, getUserTweets, getTweetById,
     updateTweet, deleteTweet
 };

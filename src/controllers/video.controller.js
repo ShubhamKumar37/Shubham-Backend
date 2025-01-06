@@ -1,5 +1,4 @@
-import mongoose, { isValidObjectId } from "mongoose"
-import { Video } from "../models/video.model.js"
+import { Video } from "../models/Video.model.js"
 import { User } from "../models/user.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
@@ -13,7 +12,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
     //TODO: get all videos based on query, sort, pagination
 
     const { page = 1, limit = 10, query, sortBy = "views", sortType = 1, userId } = req.query
-    const skipPage = (page - 1 * limit);
+    const skipPage = ((page - 1) * limit);
     const filter = {};
 
     if (query) filter.title = { $regex: query, options: "i" };
