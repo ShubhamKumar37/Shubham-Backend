@@ -5,12 +5,15 @@ import { asyncHandler } from "../utils/asyncHandler.js"
 
 const createTweet = asyncHandler(async (req, res) => {
     //TODO: create tweet
-    const { content } = req.body;
+    let { content } = req.body;
     const userId = req.user._id;
+
+    content = content.trim();
+    if (!content) throw new ApiError(400, "Please provide a valid tweet content");
 
     const createTweet = await Tweet.create({
         content,
-        ownder: userId
+        owner: userId
     });
 
     if (!createTweet) {
@@ -24,7 +27,7 @@ const createTweet = asyncHandler(async (req, res) => {
 
 const getUserTweets = asyncHandler(async (req, res) => {
     // TODO: get user tweets
-    const userId = req.user._id;
+    const { userId } = req.params;
 
     const userAllTweets = await Tweet.find({ owner: userId });
 
@@ -36,7 +39,10 @@ const getUserTweets = asyncHandler(async (req, res) => {
 const updateTweet = asyncHandler(async (req, res) => {
     //TODO: update tweet
     const { tweetId } = req.params;
-    const { content } = req.body;
+    let { content } = req.body;
+
+    content = content.trim();
+    if (!content) throw new ApiError(400, "Please a valid tweet content");
 
     const tweetExist = await Tweet.findById(tweetId);
     if (!tweetExist) throw new ApiError(400, "No tweet exist for this id");
@@ -53,10 +59,12 @@ const deleteTweet = asyncHandler(async (req, res) => {
     //TODO: delete tweet
     const { tweetId } = req.params;
 
-    await Tweet.findByIdAndDelete(tweetId);
+    const deleteResponse = await Tweet.findByIdAndDelete(tweetId);
+
+    if (!deleteResponse) throw new ApiError(404, "No tweet exist for this id");
 
     return res.status(200).json(
-        new ApiResponse(200, "Tweet successfully")
+        new ApiResponse(200, "Tweet deleted successfully")
     );
 });
 

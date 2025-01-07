@@ -1,5 +1,5 @@
 import { Video } from "../models/Video.model.js"
-import { User } from "../models/user.model.js"
+import { User } from "../models/User.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
@@ -18,7 +18,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
     if (query) filter.title = { $regex: query, options: "i" };
     if (userId) filter.owner = userId;
 
-    const videoResult = await Video.find(filter).sort({ [sortBy]: sortType }).skip(skipPage).limit(limit);
+    const videoResult = await Video.find(filter).sort({ [sortBy]: sortType }).skip(skipPage).limit(limit).populate("owner", "userName avatar")
     if (videoResult.length === 0) throw new ApiError(404, "No data found for your query");
 
     return res.status(200).json(
@@ -30,8 +30,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body
     // TODO: get video, upload to cloudinary, create video
 
-    if (!title) throw new ApiError(404, "Title is mising");
-    if (!description) throw new ApiError(404, "Description is mising");
+    if (!title) throw new ApiError(404, "Title is missing");
+    if (!description) throw new ApiError(404, "Description is missing");
 
     let thumbnailPath;
     let videoFilePath;
@@ -39,9 +39,12 @@ const publishAVideo = asyncHandler(async (req, res) => {
     if (req?.files && Array.isArray(req?.files?.thumbnail) && req.files.thumbnail.length > 0) {
         thumbnailPath = req.files.thumbnail[0]?.path;
     }
+    else throw new ApiError(400, "Thumbnail is not provided");
+
     if (req.files && Array.isArray(req?.files?.videoFile) && req.files.videoFile.length > 0) {
         videoFilePath = req.files.videoFile[0]?.path;
     }
+    else throw new ApiError(400, "Video is not provided");
 
     // Upload to cloudinary
     const thumbnailResponse = await uploadCloudinary(thumbnailPath);
@@ -53,6 +56,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         thumbnail: thumbnailResponse.secure_url,
         videoFile: videoFileResponse.secure_url,
         duration: videoFileResponse.duration,
+        owner: req.user._id,
     });
 
     return res.status(200).json(
@@ -78,11 +82,11 @@ const getVideoById = asyncHandler(async (req, res) => {
         new ApiResponse(200, "Video fetched successfully", videoExist)
     );
 });
-
+// Need to work here 
 const updateVideo = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
+    const { videoId } = req.params;
+    const thumbnailLocalPath = req.file?.path;
     //TODO: update video details like title, description, thumbnail
-    // Try to settle the textual data here , for video create a another controller
 
     const videoExist = await Video.findById(videoId);
     if (!videoExist) throw new ApiError(404, "No video exist for this id");
@@ -97,9 +101,19 @@ const updateVideo = asyncHandler(async (req, res) => {
     if (description) updateOptions.description = description;
     if (isPublished) updateOptions.isPublished = isPublished;
 
+    if (thumbnailLocalPath) {
+        const publicId = getFilePublicId(videoExist.thumbnail);
+        await deleteFromCloudinary(publicId, "image");
+
+        const uploadResponse = await uploadCloudinary(thumbnailLocalPath);
+        updateOptions.thumbnail = uploadResponse.secure_url;
+    }
+
     const updatedVideo = await Video.findByIdAndUpdate(videoId, {
         $set: updateOptions
     }, { new: true });
+
+    console.log("This is updatedvideo response = ", updatedVideo);
 
     return res.status(200).json(
         new ApiResponse(200, "Video details are now updated", updatedVideo)
@@ -113,7 +127,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
     const videoExist = await Video.findById(videoId);
 
     if (!videoExist) throw new ApiError(404, "No video exist for this id");
-    if (videoExist.owner !== req.user._id) throw new ApiError(403, "You are not the owner of video");
+    if (!videoExist.owner.equals(req.user._id)) throw new ApiError(403, "You are not the owner of video");
 
     // Need to delete cloudinary files
     const videoFileDeleteCloudinary = await deleteFromCloudinary(getFilePublicId(videoExist.videoFile), "video");
@@ -139,10 +153,11 @@ const deleteVideo = asyncHandler(async (req, res) => {
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
 
-    const videoExist = await findById(videoId);
+    const videoExist = await Video.findById(videoId);
 
     if (!videoExist) throw new ApiError(403, "No video exist for this id");
-    if ((req.user._id !== videoExist.owner)) throw new ApiError(403, "You are not the owner of this video");
+
+    if (!videoExist.owner.equals(req.user._id)) throw new ApiError(403, "You are not the owner of this video");
 
     videoExist.isPublished = !videoExist.isPublished;
     await videoExist.save({ new: true });

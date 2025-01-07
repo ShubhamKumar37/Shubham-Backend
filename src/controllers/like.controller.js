@@ -1,4 +1,4 @@
-import { Like } from "../models/like.model.js"
+import { Like } from "../models/Like.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { Video } from "../models/Video.model.js"
 import { Tweet } from "../models/Tweet.model.js"
